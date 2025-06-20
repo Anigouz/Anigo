@@ -7,7 +7,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body, html {
+    html, body {
       height: 100%;
       background: #000;
       font-family: sans-serif;
@@ -73,9 +73,9 @@
       <img src="https://firebasestorage.googleapis.com/v0/b/tv-app-e4ef4.appspot.com/o/IMG_20250616_014131_524.jpg?alt=media&token=a629a4db-e86e-4e81-b23b-b1906302aba5" alt="profile">
       <span id="reelUser" style="color:white;font-weight:bold;"></span>
     </div>
-    <div class="overlay" id="reelTitle">Yuklanmoqda...</div>
+    <div class="overlay" id="reelTitle">Loading...</div>
   </div>
-  
+
   <nav>
     <button onclick="window.location.href='https://anigouzb.netlify.app'">🏠</button>
     <button onclick="window.location.href='https://anireels.netlify.app'">🎬</button>
@@ -96,38 +96,40 @@
 
     let reelsData = [];
     let currentReelIndex = 0;
+    let audioEnabled = false;
+
+    function markCurrentReelIndex(index) {
+      localStorage.setItem("lastReelIndex", index);
+    }
+
+    function showReel(index) {
+      if (index >= reelsData.length) return;
+
+      const reel = reelsData[index];
+      const streamId = reel.stream;
+
+      const video = document.getElementById('reelVideo');
+      video.src = `https://archive.org/download/${streamId}/${streamId}.mp4`;
+      document.getElementById('reelTitle').innerText = reel.title;
+      document.getElementById('reelUser').innerText = reel.username || "AniGouz";
+      video.muted = !audioEnabled;
+      video.play();
+
+      markCurrentReelIndex(index);
+    }
 
     function loadReels() {
       db.ref('reels').once('value', snapshot => {
         reelsData = [];
-        snapshot.forEach(child => {
-          const reel = child.val();
-          reelsData.push({
-            title: reel.title,
-            stream: reel.stream,
-            username: reel.username || "AniGouz"
-          });
-        });
-
+        snapshot.forEach(child => reelsData.push(child.val()));
         if (reelsData.length > 0) {
-          currentReelIndex = 0;
+          const savedIndex = parseInt(localStorage.getItem("lastReelIndex")) || 0;
+          currentReelIndex = Math.min(savedIndex, reelsData.length - 1);
           showReel(currentReelIndex);
         } else {
           document.getElementById('reelTitle').innerText = "Reels topilmadi.";
         }
       });
-    }
-
-    function showReel(index) {
-      const reel = reelsData[index];
-      const video = document.getElementById('reelVideo');
-      const title = document.getElementById('reelTitle');
-      const user = document.getElementById('reelUser');
-
-      // Archive.org mp4 link yasash
-      video.src = `https://archive.org/download/${reel.stream}.mp4`;
-      title.innerText = reel.title;
-      user.innerText = reel.username;
     }
 
     function nextReel() {
@@ -160,6 +162,19 @@
       if (delta > 50) nextReel();
       else if (delta < -50) prevReel();
     }
+
+    // 🔊 Video ustiga bosganda audio yoqilsin
+    document.getElementById("reelVideo").addEventListener("click", function() {
+      audioEnabled = true;
+      this.muted = false;
+    });
+
+    // 🛎 Ustiga bosib ovozni yoqishingizni eslatadigan xabar
+    window.addEventListener("load", () => {
+      setTimeout(() => {
+        alert("🎧 Video ovozini yoqish uchun ustiga bosing!");
+      }, 1000);
+    });
 
     loadReels();
   </script>
