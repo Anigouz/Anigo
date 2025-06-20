@@ -20,10 +20,6 @@
       height: 100vh;
     }
     video {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
       width: 100vw;
       height: 100vh;
       object-fit: cover;
@@ -37,7 +33,6 @@
       padding: 10px 14px;
       border-radius: 10px;
       max-width: 80%;
-      z-index: 2;
     }
     .user-info {
       position: absolute;
@@ -45,7 +40,6 @@
       left: 15px;
       display: flex;
       align-items: center;
-      z-index: 2;
     }
     .user-info img {
       width: 40px;
@@ -62,7 +56,7 @@
       display: flex;
       justify-content: space-around;
       padding: 10px 0;
-      z-index: 3;
+      z-index: 999;
     }
     nav button {
       background: none;
@@ -85,8 +79,8 @@
   </div>
 
   <nav>
-    <button onclick="window.location.href='https://anigouzb.netlify.app'">🏠 Home</button>
-    <button onclick="window.location.href='https://anireels.netlify.app'">🎬 Reels</button>
+    <button onclick="window.location.href='https://anigouzb.netlify.app'">🏠</button>
+    <button onclick="window.location.href='https://anireels.netlify.app'">🎬</button>
   </nav>
 
   <script>
@@ -113,7 +107,7 @@
           currentReelIndex = 0;
           showReel(currentReelIndex);
           setTimeout(() => {
-            alert("🔊 Video ovozi uchun videoga bosing");
+            alert("🔊 Ovoz uchun videoga bosing");
           }, 1000);
         } else {
           document.getElementById('reelTitle').innerText = "Reels topilmadi.";
@@ -124,18 +118,22 @@
     function showReel(index) {
       const reel = reelsData[index];
       const video = document.getElementById('reelVideo');
+      const title = document.getElementById('reelTitle');
+      const user = document.getElementById('reelUser');
+
+      // Avvalgi videoni tozalash
       video.pause();
-      video.removeAttribute("src");
+      video.removeAttribute('src');
       video.load();
 
-      setTimeout(() => {
-        video.src = `https://archive.org/download/${reel.stream}.mp4`;
-        video.load();
-        video.play().catch(err => console.error("Play Error", err));
-      }, 100);
+      // Yangi video yuklash
+      video.src = `https://archive.org/download/${reel.stream}.mp4`;
+      video.load();
+      video.play().catch(e => console.log("Play error:", e));
 
-      document.getElementById('reelTitle').innerText = reel.title;
-      document.getElementById('reelUser').innerText = reel.username || "AniGouz";
+      // Matnlar
+      title.innerText = reel.title;
+      user.innerText = reel.username || "AniGouz";
     }
 
     function nextReel() {
@@ -168,6 +166,12 @@
       if (delta > 50) nextReel();
       else if (delta < -50) prevReel();
     }
+
+    // Ovoz yoqish uchun
+    document.getElementById('reelVideo').addEventListener('click', function () {
+      this.muted = false;
+      this.play().catch(e => console.log("Sound error:", e));
+    });
 
     loadReels();
   </script>
