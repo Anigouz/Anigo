@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AniGouz Reels</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
@@ -37,6 +37,7 @@
       padding: 10px 14px;
       border-radius: 10px;
       max-width: 80%;
+      z-index: 2;
     }
     .user-info {
       position: absolute;
@@ -44,6 +45,7 @@
       left: 15px;
       display: flex;
       align-items: center;
+      z-index: 2;
     }
     .user-info img {
       width: 40px;
@@ -60,7 +62,7 @@
       display: flex;
       justify-content: space-around;
       padding: 10px 0;
-      z-index: 999;
+      z-index: 3;
     }
     nav button {
       background: none;
@@ -72,6 +74,7 @@
   </style>
 </head>
 <body>
+
   <div class="reel-container" id="reelPager">
     <video id="reelVideo" autoplay muted loop playsinline></video>
     <div class="user-info">
@@ -110,8 +113,8 @@
           currentReelIndex = 0;
           showReel(currentReelIndex);
           setTimeout(() => {
-            alert("🔊 Video tovushini yoqish uchun ustiga bosing");
-          }, 2000);
+            alert("🔊 Video ovozi uchun videoga bosing");
+          }, 1000);
         } else {
           document.getElementById('reelTitle').innerText = "Reels topilmadi.";
         }
@@ -122,9 +125,14 @@
       const reel = reelsData[index];
       const video = document.getElementById('reelVideo');
       video.pause();
-      video.src = `https://archive.org/download/${reel.stream}.mp4`;
+      video.removeAttribute("src");
       video.load();
-      video.play();
+
+      setTimeout(() => {
+        video.src = `https://archive.org/download/${reel.stream}.mp4`;
+        video.load();
+        video.play().catch(err => console.error("Play Error", err));
+      }, 100);
 
       document.getElementById('reelTitle').innerText = reel.title;
       document.getElementById('reelUser').innerText = reel.username || "AniGouz";
