@@ -68,11 +68,9 @@
   </style>
 </head>
 <body>
-
   <div class="reel-container" id="reelPager">
-    <video id="reelVideo" autoplay muted loop playsinline></video>
     <div class="user-info">
-      <img src="https://firebasestorage.googleapis.com/v0/b/tv-app-e4ef4.appspot.com/o/IMG_20250616_014131_524.jpg?alt=media&token=a629a4db-e86e-4e81-b23b-b1906302aba5" alt="profile">
+      <img src="https://firebasestorage.googleapis.com/v0/b/tv-app-e4ef4.appspot.com/o/IMG_20250616_014131_524.jpg?alt=media" alt="profile">
       <span id="reelUser" style="color:white;font-weight:bold;"></span>
     </div>
     <div class="overlay" id="reelTitle">Loading...</div>
@@ -107,8 +105,8 @@
           currentReelIndex = 0;
           showReel(currentReelIndex);
           setTimeout(() => {
-            alert("🔊 Ovoz uchun videoga bosing");
-          }, 1000);
+            alert("▶️ Ovoz uchun videoni bosing");
+          }, 1500);
         } else {
           document.getElementById('reelTitle').innerText = "Reels topilmadi.";
         }
@@ -117,23 +115,37 @@
 
     function showReel(index) {
       const reel = reelsData[index];
-      const video = document.getElementById('reelVideo');
-      const title = document.getElementById('reelTitle');
-      const user = document.getElementById('reelUser');
+      const container = document.getElementById('reelPager');
 
-      // Avvalgi videoni tozalash
-      video.pause();
-      video.removeAttribute('src');
-      video.load();
+      // Eski videoni olib tashlaymiz
+      const oldVideo = document.getElementById('reelVideo');
+      if (oldVideo) oldVideo.remove();
 
-      // Yangi video yuklash
+      // Yangi video yaratamiz
+      const video = document.createElement('video');
+      video.id = "reelVideo";
       video.src = `https://archive.org/download/${reel.stream}.mp4`;
-      video.load();
-      video.play().catch(e => console.log("Play error:", e));
+      video.autoplay = true;
+      video.muted = true;
+      video.loop = true;
+      video.playsInline = true;
+      video.style.width = "100vw";
+      video.style.height = "100vh";
+      video.style.objectFit = "cover";
+      video.style.position = "absolute";
+      video.style.top = "0";
+      video.style.left = "0";
 
-      // Matnlar
-      title.innerText = reel.title;
-      user.innerText = reel.username || "AniGouz";
+      video.addEventListener('click', function () {
+        this.muted = false;
+        this.play().catch(err => console.warn("Ovoz yoqishda xatolik:", err));
+      });
+
+      container.prepend(video);
+
+      // Sarlavha va user
+      document.getElementById('reelTitle').innerText = reel.title || "";
+      document.getElementById('reelUser').innerText = reel.username || "AniGouz";
     }
 
     function nextReel() {
@@ -148,6 +160,7 @@
       showReel(currentReelIndex);
     }
 
+    // Swipe funksiyasi
     let touchStartY = 0;
     let touchEndY = 0;
     const pager = document.getElementById('reelPager');
@@ -166,12 +179,6 @@
       if (delta > 50) nextReel();
       else if (delta < -50) prevReel();
     }
-
-    // Ovoz yoqish uchun
-    document.getElementById('reelVideo').addEventListener('click', function () {
-      this.muted = false;
-      this.play().catch(e => console.log("Sound error:", e));
-    });
 
     loadReels();
   </script>
