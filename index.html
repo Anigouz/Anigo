@@ -1,102 +1,167 @@
-<!DOCTYPE html>
-<html>
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AniGouz Reels</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
-    html, body { margin:0; padding:0; height:100%; overflow:hidden; background:#000; }
-    video { position:fixed; width:100vw; height:100vh; object-fit:cover; }
-    .overlay { position:absolute; bottom:60px; left:10px; color:#fff; background:rgba(0,0,0,0.5); padding:10px; border-radius:10px; }
-    .user { position:absolute; bottom:120px; left:10px; color:#fff; display:flex; align-items:center; }
-    .user img { width:40px; height:40px; border-radius:50%; margin-right:10px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body, html {
+      height: 100%;
+      background: #000;
+      font-family: sans-serif;
+      overflow: hidden;
+    }
+    .reel-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+    video {
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+    }
+    .overlay {
+      position: absolute;
+      bottom: 80px;
+      left: 15px;
+      color: white;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 10px 14px;
+      border-radius: 10px;
+      max-width: 80%;
+    }
+    .user-info {
+      position: absolute;
+      bottom: 140px;
+      left: 15px;
+      display: flex;
+      align-items: center;
+    }
+    .user-info img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      margin-right: 10px;
+    }
+    nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0;
+      z-index: 999;
+    }
+    nav button {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-
-<div id="app">
-  <video id="video" autoplay muted loop playsinline></video>
-  <div class="user">
-    <img src="https://firebasestorage.googleapis.com/v0/b/tv-app-e4ef4.appspot.com/o/IMG_20250616_014131_524.jpg?alt=media&token=a629a4db-e86e-4e81-b23b-b1906302aba5" />
-    <span id="username">AniGouz</span>
+  <div class="reel-container" id="reelPager">
+    <video id="reelVideo" autoplay muted loop playsinline></video>
+    <div class="user-info">
+      <img src="https://firebasestorage.googleapis.com/v0/b/tv-app-e4ef4.appspot.com/o/IMG_20250616_014131_524.jpg?alt=media&token=a629a4db-e86e-4e81-b23b-b1906302aba5" alt="profile">
+      <span id="reelUser" style="color:white;font-weight:bold;"></span>
+    </div>
+    <div class="overlay" id="reelTitle">Yuklanmoqda...</div>
   </div>
-  <div class="overlay" id="title">Sarlavha</div>
-</div>
+  
+  <nav>
+    <button onclick="window.location.href='https://anigouzb.netlify.app'">🏠</button>
+    <button onclick="window.location.href='https://anireels.netlify.app'">🎬</button>
+  </nav>
 
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyBgDwfB9F4mHVAGN_9F-5ZJI56RikyDaeU",
-    authDomain: "tv-app-e4ef4.firebaseapp.com",
-    databaseURL: "https://tv-app-e4ef4-default-rtdb.firebaseio.com",
-    projectId: "tv-app-e4ef4",
-    storageBucket: "tv-app-e4ef4.appspot.com",
-    messagingSenderId: "224075442016",
-    appId: "1:224075442016:web:718aafce5aa16163e06005"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.database();
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBgDwfB9F4mHVAGN_9F-5ZJI56RikyDaeU",
+      authDomain: "tv-app-e4ef4.firebaseapp.com",
+      databaseURL: "https://tv-app-e4ef4-default-rtdb.firebaseio.com",
+      projectId: "tv-app-e4ef4",
+      storageBucket: "tv-app-e4ef4.appspot.com",
+      messagingSenderId: "224075442016",
+      appId: "1:224075442016:web:718aafce5aa16163e06005"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-  let reelsData = [];
-  let currentIndex = 0;
-  let currentUID = "";
+    let reelsData = [];
+    let currentReelIndex = 0;
 
-  auth.signInAnonymously().then(() => {
-    currentUID = firebase.auth().currentUser.uid;
-    loadReels();
-  });
+    function loadReels() {
+      db.ref('reels').once('value', snapshot => {
+        reelsData = [];
+        snapshot.forEach(child => {
+          const reel = child.val();
+          reelsData.push({
+            title: reel.title,
+            stream: reel.stream,
+            username: reel.username || "AniGouz"
+          });
+        });
 
-  async function loadReels() {
-    const reelsSnap = await db.ref('reels').once('value');
-    const seenSnap = await db.ref('users_seen/' + currentUID).once('value');
+        if (reelsData.length > 0) {
+          currentReelIndex = 0;
+          showReel(currentReelIndex);
+        } else {
+          document.getElementById('reelTitle').innerText = "Reels topilmadi.";
+        }
+      });
+    }
 
-    const seen = seenSnap.val() || {};
-    reelsData = [];
+    function showReel(index) {
+      const reel = reelsData[index];
+      const video = document.getElementById('reelVideo');
+      const title = document.getElementById('reelTitle');
+      const user = document.getElementById('reelUser');
 
-    reelsSnap.forEach(child => {
-      const reel = child.val();
-      if (!seen[reel.stream]) reelsData.push(reel);
+      // Archive.org mp4 link yasash
+      video.src = `https://archive.org/download/${reel.stream}/${reel.stream}.mp4`;
+      title.innerText = reel.title;
+      user.innerText = reel.username;
+    }
+
+    function nextReel() {
+      if (reelsData.length === 0) return;
+      currentReelIndex = (currentReelIndex + 1) % reelsData.length;
+      showReel(currentReelIndex);
+    }
+
+    function prevReel() {
+      if (reelsData.length === 0) return;
+      currentReelIndex = (currentReelIndex - 1 + reelsData.length) % reelsData.length;
+      showReel(currentReelIndex);
+    }
+
+    let touchStartY = 0;
+    let touchEndY = 0;
+    const pager = document.getElementById('reelPager');
+
+    pager.addEventListener('touchstart', e => {
+      touchStartY = e.changedTouches[0].screenY;
     });
 
-    if (reelsData.length > 0) {
-      currentIndex = 0;
-      showReel(currentIndex);
-    } else {
-      document.getElementById('title').innerText = "Barcha reelslar ko‘rilgan 🎉";
+    pager.addEventListener('touchend', e => {
+      touchEndY = e.changedTouches[0].screenY;
+      handleSwipe();
+    });
+
+    function handleSwipe() {
+      const delta = touchStartY - touchEndY;
+      if (delta > 50) nextReel();
+      else if (delta < -50) prevReel();
     }
-  }
 
-  function showReel(index) {
-    const reel = reelsData[index];
-    document.getElementById('video').src = `https://archive.org/download/${reel.stream}/${reel.stream}.mp4`;
-    document.getElementById('title').innerText = reel.title || "Sarlavha yo‘q";
-    document.getElementById('username').innerText = reel.username || "AniGouz";
-
-    // Belgilash: bu reels ko‘rildi
-    db.ref(`users_seen/${currentUID}/${reel.stream}`).set(true);
-  }
-
-  // Swipe o‘tkazish
-  let touchStartY = 0;
-  document.body.addEventListener("touchstart", e => {
-    touchStartY = e.touches[0].clientY;
-  });
-  document.body.addEventListener("touchend", e => {
-    const diff = touchStartY - e.changedTouches[0].clientY;
-    if (diff > 50) nextReel();
-  });
-
-  function nextReel() {
-    currentIndex++;
-    if (currentIndex < reelsData.length) {
-      showReel(currentIndex);
-    } else {
-      document.getElementById('title').innerText = "Yangi reels yo‘q!";
-      document.getElementById('video').src = "";
-    }
-  }
-</script>
+    loadReels();
+  </script>
 </body>
 </html>
