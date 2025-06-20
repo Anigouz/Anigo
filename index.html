@@ -1,28 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AniGouz Reels</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body, html {
+    html, body {
       height: 100%;
       background: #000;
-      font-family: sans-serif;
       overflow: hidden;
+      font-family: sans-serif;
     }
     .reel-container {
       position: relative;
       width: 100vw;
       height: 100vh;
-    }
-    video {
-      width: 100vw;
-      height: 100vh;
-      object-fit: cover;
     }
     .overlay {
       position: absolute;
@@ -33,6 +28,7 @@
       padding: 10px 14px;
       border-radius: 10px;
       max-width: 80%;
+      z-index: 2;
     }
     .user-info {
       position: absolute;
@@ -40,6 +36,7 @@
       left: 15px;
       display: flex;
       align-items: center;
+      z-index: 2;
     }
     .user-info img {
       width: 40px;
@@ -56,7 +53,7 @@
       display: flex;
       justify-content: space-around;
       padding: 10px 0;
-      z-index: 999;
+      z-index: 3;
     }
     nav button {
       background: none;
@@ -69,16 +66,17 @@
 </head>
 <body>
   <div class="reel-container" id="reelPager">
+    <!-- Video dynamically inserted -->
     <div class="user-info">
-      <img src="https://firebasestorage.googleapis.com/v0/b/tv-app-e4ef4.appspot.com/o/IMG_20250616_014131_524.jpg?alt=media" alt="profile">
+      <img src="https://firebasestorage.googleapis.com/v0/b/tv-app-e4ef4.appspot.com/o/IMG_20250616_014131_524.jpg?alt=media&token=a629a4db-e86e-4e81-b23b-b1906302aba5" alt="profile">
       <span id="reelUser" style="color:white;font-weight:bold;"></span>
     </div>
     <div class="overlay" id="reelTitle">Loading...</div>
   </div>
 
   <nav>
-    <button onclick="window.location.href='https://anigouzb.netlify.app'">🏠</button>
-    <button onclick="window.location.href='https://anireels.netlify.app'">🎬</button>
+    <button onclick="window.location.href='https://anigouzb.netlify.app'">🏠 Home</button>
+    <button onclick="window.location.href='https://anireels.netlify.app'">🎬 Reels</button>
   </nav>
 
   <script>
@@ -97,73 +95,64 @@
     let reelsData = [];
     let currentReelIndex = 0;
 
-    function loadReels() {
-      db.ref('reels').once('value', snapshot => {
-        reelsData = [];
-        snapshot.forEach(child => reelsData.push(child.val()));
-        if (reelsData.length > 0) {
-          currentReelIndex = 0;
-          showReel(currentReelIndex);
-          setTimeout(() => {
-            alert("▶️ Ovoz uchun videoni bosing");
-          }, 1500);
-        } else {
-          document.getElementById('reelTitle').innerText = "Reels topilmadi.";
-        }
-      });
-    }
+    const pager = document.getElementById('reelPager');
 
-    function showReel(index) {
-      const reel = reelsData[index];
+    function showReelById(streamId) {
       const container = document.getElementById('reelPager');
 
-      // Eski videoni olib tashlaymiz
+      // Remove old video
       const oldVideo = document.getElementById('reelVideo');
-      if (oldVideo) oldVideo.remove();
+      if (oldVideo) {
+        oldVideo.pause();
+        oldVideo.remove();
+      }
 
-      // Yangi video yaratamiz
+      const currentReel = reelsData.find(reel => reel.stream === streamId);
+      if (!currentReel) return;
+
       const video = document.createElement('video');
       video.id = "reelVideo";
-      video.src = `https://archive.org/download/${reel.stream}.mp4`;
+      video.src = `https://archive.org/download/${currentReel.stream}.mp4`;
       video.autoplay = true;
-      video.muted = true;
       video.loop = true;
       video.playsInline = true;
-      video.style.width = "100vw";
-      video.style.height = "100vh";
-      video.style.objectFit = "cover";
+      video.muted = true;
       video.style.position = "absolute";
       video.style.top = "0";
       video.style.left = "0";
-
-      video.addEventListener('click', function () {
-        this.muted = false;
-        this.play().catch(err => console.warn("Ovoz yoqishda xatolik:", err));
+      video.style.width = "100vw";
+      video.style.height = "100vh";
+      video.style.objectFit = "cover";
+      video.addEventListener("click", () => {
+        video.muted = false;
+        video.play();
       });
 
       container.prepend(video);
 
-      // Sarlavha va user
-      document.getElementById('reelTitle').innerText = reel.title || "";
-      document.getElementById('reelUser').innerText = reel.username || "AniGouz";
+      document.getElementById('reelTitle').innerText = currentReel.title;
+      document.getElementById('reelUser').innerText = currentReel.username || "AniGouz";
+
+      currentReelIndex = reelsData.findIndex(r => r.stream === streamId);
     }
 
     function nextReel() {
-      if (reelsData.length === 0) return;
-      currentReelIndex = (currentReelIndex + 1) % reelsData.length;
-      showReel(currentReelIndex);
+      if (currentReelIndex < reelsData.length - 1) {
+        const nextId = reelsData[currentReelIndex + 1].stream;
+        showReelById(nextId);
+      }
     }
 
     function prevReel() {
-      if (reelsData.length === 0) return;
-      currentReelIndex = (currentReelIndex - 1 + reelsData.length) % reelsData.length;
-      showReel(currentReelIndex);
+      if (currentReelIndex > 0) {
+        const prevId = reelsData[currentReelIndex - 1].stream;
+        showReelById(prevId);
+      }
     }
 
-    // Swipe funksiyasi
+    // Swipe
     let touchStartY = 0;
     let touchEndY = 0;
-    const pager = document.getElementById('reelPager');
 
     pager.addEventListener('touchstart', e => {
       touchStartY = e.changedTouches[0].screenY;
@@ -180,7 +169,36 @@
       else if (delta < -50) prevReel();
     }
 
-    loadReels();
+    function loadReels() {
+      db.ref('reels').once('value', snapshot => {
+        reelsData = [];
+        snapshot.forEach(child => reelsData.push(child.val()));
+        if (reelsData.length > 0) {
+          showReelById(reelsData[0].stream);
+          showToast("🎧 Ovoz chiqarish uchun videoni bosing");
+        } else {
+          document.getElementById('reelTitle').innerText = "Reels topilmadi.";
+        }
+      });
+    }
+
+    function showToast(message) {
+      const toast = document.createElement("div");
+      toast.textContent = message;
+      toast.style.position = "fixed";
+      toast.style.bottom = "100px";
+      toast.style.left = "50%";
+      toast.style.transform = "translateX(-50%)";
+      toast.style.background = "rgba(0,0,0,0.8)";
+      toast.style.color = "#fff";
+      toast.style.padding = "10px 20px";
+      toast.style.borderRadius = "6px";
+      toast.style.zIndex = "9999";
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+
+    window.onload = loadReels;
   </script>
 </body>
-</html>
+  </html>
