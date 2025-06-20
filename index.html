@@ -122,7 +122,7 @@
       const reel = reelsData[index];
       const video = document.getElementById('reelVideo');
       video.pause();
-      video.src = `https://archive.org/download/${reel.stream}/${reel.stream}.mp4`;
+      video.src = `https://archive.org/download/${reel.stream}.mp4`;
       video.load();
       video.play();
 
