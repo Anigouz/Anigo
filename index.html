@@ -1,0 +1,152 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AniGouz Reels</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body, html {
+      height: 100%;
+      background: #000;
+      font-family: sans-serif;
+      overflow: hidden;
+    }
+    .reel-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+    video {
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+    }
+    .overlay {
+      position: absolute;
+      bottom: 80px;
+      left: 15px;
+      color: white;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 10px 14px;
+      border-radius: 10px;
+      max-width: 80%;
+    }
+    .user-info {
+      position: absolute;
+      bottom: 140px;
+      left: 15px;
+      display: flex;
+      align-items: center;
+    }
+    .user-info img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      margin-right: 10px;
+    }
+    nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0;
+      z-index: 999;
+    }
+    nav button {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="reel-container" id="reelPager">
+    <video id="reelVideo" autoplay muted loop playsinline></video>
+    <div class="user-info">
+      <img src="https://firebasestorage.googleapis.com/v0/b/tv-app-e4ef4.appspot.com/o/IMG_20250616_014131_524.jpg?alt=media&token=a629a4db-e86e-4e81-b23b-b1906302aba5" alt="profile">
+      <span id="reelUser" style="color:white;font-weight:bold;"></span>
+    </div>
+    <div class="overlay" id="reelTitle">Loading...</div>
+  </div>  <nav>
+    <button onclick="window.location.href='https://anigouzb.netlify.app'">🏠</button>
+    <button onclick="window.location.href='https://anireels.netlify.app'">🎬</button>
+  </nav>  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBgDwfB9F4mHVAGN_9F-5ZJI56RikyDaeU",
+      authDomain: "tv-app-e4ef4.firebaseapp.com",
+      databaseURL: "https://tv-app-e4ef4-default-rtdb.firebaseio.com",
+      projectId: "tv-app-e4ef4",
+      storageBucket: "tv-app-e4ef4.appspot.com",
+      messagingSenderId: "224075442016",
+      appId: "1:224075442016:web:718aafce5aa16163e06005"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let reelsData = [];
+    let currentReelIndex = 0;
+
+    function loadReels() {
+      db.ref('reels').once('value', snapshot => {
+        reelsData = [];
+        snapshot.forEach(child => reelsData.push(child.val()));
+        if (reelsData.length > 0) {
+          currentReelIndex = 0;
+          showReel(currentReelIndex);
+        } else {
+          document.getElementById('reelTitle').innerText = "Reels topilmadi.";
+        }
+      });
+    }
+
+    function showReel(index) {
+      const reel = reelsData[index];
+      const video = document.getElementById('reelVideo');
+      const title = document.getElementById('reelTitle');
+      const user = document.getElementById('reelUser');
+      video.src = `https://archive.org/download/${reel.stream}/${reel.stream}.mp4`;
+      title.innerText = reel.title;
+      user.innerText = reel.username || "AniGouz";
+    }
+
+    function nextReel() {
+      if (reelsData.length === 0) return;
+      currentReelIndex = (currentReelIndex + 1) % reelsData.length;
+      showReel(currentReelIndex);
+    }
+
+    function prevReel() {
+      if (reelsData.length === 0) return;
+      currentReelIndex = (currentReelIndex - 1 + reelsData.length) % reelsData.length;
+      showReel(currentReelIndex);
+    }
+
+    let touchStartY = 0;
+    let touchEndY = 0;
+    const pager = document.getElementById('reelPager');
+
+    pager.addEventListener('touchstart', e => {
+      touchStartY = e.changedTouches[0].screenY;
+    });
+
+    pager.addEventListener('touchend', e => {
+      touchEndY = e.changedTouches[0].screenY;
+      handleSwipe();
+    });
+
+    function handleSwipe() {
+      const delta = touchStartY - touchEndY;
+      if (delta > 50) nextReel();
+      else if (delta < -50) prevReel();
+    }
+
+    loadReels();
+  </script></body>
+            </html>
