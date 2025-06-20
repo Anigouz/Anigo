@@ -109,7 +109,7 @@
       const streamId = reel.stream;
 
       const video = document.getElementById('reelVideo');
-      video.src = `https://archive.org/download/${streamId}/${streamId}.mp4`;
+      video.src = `https://archive.org/download/${reel.stream}.mp4`;
       document.getElementById('reelTitle').innerText = reel.title;
       document.getElementById('reelUser').innerText = reel.username || "AniGouz";
       video.muted = !audioEnabled;
