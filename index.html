@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,7 +8,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
+    body, html {
       height: 100%;
       background: #000;
       font-family: sans-serif;
@@ -22,6 +23,9 @@
       width: 100vw;
       height: 100vh;
       object-fit: cover;
+      position: absolute;
+      top: 0;
+      left: 0;
     }
     .overlay {
       position: absolute;
@@ -32,6 +36,7 @@
       padding: 10px 14px;
       border-radius: 10px;
       max-width: 80%;
+      z-index: 2;
     }
     .user-info {
       position: absolute;
@@ -39,12 +44,26 @@
       left: 15px;
       display: flex;
       align-items: center;
+      z-index: 2;
     }
     .user-info img {
       width: 40px;
       height: 40px;
       border-radius: 50%;
       margin-right: 10px;
+    }
+    .toast {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      z-index: 10;
+      display: none;
     }
     nav {
       position: fixed;
@@ -64,21 +83,42 @@
       font-size: 18px;
       cursor: pointer;
     }
+    .next-btn {
+      position: absolute;
+      bottom: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 999;
+    }
+    .next-btn button {
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      background: #00d1ff;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
   <div class="reel-container" id="reelPager">
     <video id="reelVideo" autoplay muted loop playsinline></video>
     <div class="user-info">
-      <img src="https://firebasestorage.googleapis.com/v0/b/tv-app-e4ef4.appspot.com/o/IMG_20250616_014131_524.jpg?alt=media&token=a629a4db-e86e-4e81-b23b-b1906302aba5" alt="profile">
+      <img src="https://firebasestorage.googleapis.com/v0/b/tv-app-e4ef4.appspot.com/o/IMG_20250616_014131_524.jpg?alt=media" alt="profile">
       <span id="reelUser" style="color:white;font-weight:bold;"></span>
     </div>
     <div class="overlay" id="reelTitle">Loading...</div>
+    <div class="toast" id="toast">🎧 Video tovushini eshitish uchun ustiga bosing</div>
+    <div class="next-btn">
+      <button onclick="nextReel()">⏭ Keyingi</button>
+    </div>
   </div>
 
   <nav>
-    <button onclick="window.location.href='https://anigouzb.netlify.app'">🏠</button>
-    <button onclick="window.location.href='https://anireels.netlify.app'">🎬</button>
+    <button onclick="window.location.href='https://anigouzb.netlify.app'">🏠 Home</button>
+    <button onclick="window.location.href='https://anireels.netlify.app'">🎬 Reels</button>
   </nav>
 
   <script>
@@ -96,40 +136,31 @@
 
     let reelsData = [];
     let currentReelIndex = 0;
-    let audioEnabled = false;
-
-    function markCurrentReelIndex(index) {
-      localStorage.setItem("lastReelIndex", index);
-    }
-
-    function showReel(index) {
-      if (index >= reelsData.length) return;
-
-      const reel = reelsData[index];
-      const streamId = reel.stream;
-
-      const video = document.getElementById('reelVideo');
-      video.src = `https://archive.org/download/${reel.stream}.mp4`;
-      document.getElementById('reelTitle').innerText = reel.title;
-      document.getElementById('reelUser').innerText = reel.username || "AniGouz";
-      video.muted = !audioEnabled;
-      video.play();
-
-      markCurrentReelIndex(index);
-    }
+    const video = document.getElementById('reelVideo');
+    const toast = document.getElementById('toast');
 
     function loadReels() {
       db.ref('reels').once('value', snapshot => {
         reelsData = [];
         snapshot.forEach(child => reelsData.push(child.val()));
         if (reelsData.length > 0) {
-          const savedIndex = parseInt(localStorage.getItem("lastReelIndex")) || 0;
-          currentReelIndex = Math.min(savedIndex, reelsData.length - 1);
+          currentReelIndex = 0;
           showReel(currentReelIndex);
+          setTimeout(() => {
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 3000);
+          }, 1000);
         } else {
           document.getElementById('reelTitle').innerText = "Reels topilmadi.";
         }
       });
+    }
+
+    function showReel(index) {
+      const reel = reelsData[index];
+      video.src = `https://archive.org/download/${reel.stream}.mp4`;
+      document.getElementById('reelTitle').innerText = reel.title;
+      document.getElementById('reelUser').innerText = reel.username || "AniGouz";
     }
 
     function nextReel() {
@@ -163,20 +194,15 @@
       else if (delta < -50) prevReel();
     }
 
-    // 🔊 Video ustiga bosganda audio yoqilsin
-    document.getElementById("reelVideo").addEventListener("click", function() {
-      audioEnabled = true;
-      this.muted = false;
-    });
-
-    // 🛎 Ustiga bosib ovozni yoqishingizni eslatadigan xabar
-    window.addEventListener("load", () => {
-      setTimeout(() => {
-        alert("🎧 Video ovozini yoqish uchun ustiga bosing!");
-      }, 1000);
+    video.addEventListener("click", () => {
+      if (video.muted) {
+        video.muted = false;
+      } else {
+        video.muted = true;
+      }
     });
 
     loadReels();
   </script>
 </body>
-</html>
+      </html>
