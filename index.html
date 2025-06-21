@@ -23,26 +23,23 @@
       align-items: center;
     }
     video {
-      width: 100%;
-      height: 100%;
+      max-width: 100vw;
+      max-height: 100vh;
       object-fit: contain;
-      display: block;
-      margin: auto;
     }
     .overlay {
       position: absolute;
-      bottom: 60px;
+      bottom: 80px;
       left: 15px;
       color: white;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.4);
       padding: 10px 14px;
       border-radius: 10px;
       max-width: 80%;
-      font-size: 16px;
     }
     .user-info {
       position: absolute;
-      bottom: 110px;
+      bottom: 140px;
       left: 15px;
       display: flex;
       align-items: center;
@@ -55,9 +52,9 @@
     }
     #replayBtn {
       position: absolute;
-      bottom: 30%;
+      top: 50%;
       left: 50%;
-      transform: translateX(-50%);
+      transform: translate(-50%, -50%);
       padding: 15px 25px;
       font-size: 18px;
       border: none;
@@ -72,12 +69,12 @@
 </head>
 <body>
   <div class="reel-container" id="reelPager">
-    <video id="reelVideo" autoplay muted loop playsinline></video>
+    <video id="reelVideo" autoplay muted playsinline></video>
     <div class="user-info">
       <img src="https://firebasestorage.googleapis.com/v0/b/tv-app-e4ef4.appspot.com/o/IMG_20250616_014131_524.jpg?alt=media&token=a629a4db-e86e-4e81-b23b-b1906302aba5" alt="profile">
       <span id="reelUser" style="color:white;font-weight:bold;"></span>
     </div>
-    <div class="overlay" id="reelTitle">Yuklanmoqda...</div>
+    <div class="overlay" id="reelTitle">Loading...</div>
     <button id="replayBtn" onclick="resetReels()">🔁 Qayta ko‘rish</button>
   </div>
 
@@ -102,6 +99,7 @@
     let reelsData = [];
     let currentIndex = 0;
     let seenReels = JSON.parse(localStorage.getItem("seen_reels") || "[]");
+    let audioEnabled = false; // faqat foydalanuvchi ruxsat bergan bo‘lsa ovoz yoqiladi
 
     function loadReels() {
       db.ref('reels').once('value', snapshot => {
@@ -128,7 +126,7 @@
       if (!reel) return;
       video.src = `https://archive.org/download/${reel.stream}.mp4`;
       video.load();
-      video.muted = true;
+      video.muted = !audioEnabled; // foydalanuvchi ovozni yoqgan bo‘lsa, yana ochiladi
       title.innerText = reel.title;
       user.innerText = reel.username || "AniGouz";
       video.style.display = "block";
@@ -138,8 +136,8 @@
     function nextReel() {
       if (currentIndex + 1 < reelsData.length) {
         currentIndex++;
-        showReel(currentIndex);
         addToSeen(reelsData[currentIndex].stream);
+        showReel(currentIndex);
       } else {
         title.innerText = "🎉 Barcha reels ko‘rildi!";
         replayBtn.style.display = "block";
@@ -159,6 +157,14 @@
       }
     }
 
+    // User birinchi bosganda ovoz yoqiladi
+    video.addEventListener("click", () => {
+      video.muted = false;
+      video.play();
+      audioEnabled = true;
+    });
+
+    // swipe orqali keyingi video
     let startY = 0;
     let endY = 0;
     document.getElementById("reelPager").addEventListener("touchstart", e => {
@@ -169,16 +175,11 @@
       if (startY - endY > 50) nextReel();
     });
 
-    // 🎧 Toast chiqishi
+    // ovoz haqida birinchi marta ogohlantirish
     window.addEventListener("load", () => {
       setTimeout(() => {
-        alert("🎧 Ovoz uchun videoga bosing!");
-      }, 1500);
-    });
-
-    video.addEventListener("click", () => {
-      video.muted = false;
-      video.play();
+        alert("🎧 Ovozni eshitish uchun videoga bosing!");
+      }, 1000);
     });
 
     loadReels();
