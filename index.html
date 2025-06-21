@@ -25,13 +25,11 @@
     video {
       max-width: 100vw;
       max-height: 100vh;
-      width: auto;
-      height: auto;
       object-fit: contain;
     }
     .overlay {
       position: absolute;
-      bottom: 80px;
+      bottom: 20px;
       left: 15px;
       color: white;
       background: rgba(0, 0, 0, 0.4);
@@ -41,7 +39,7 @@
     }
     .user-info {
       position: absolute;
-      bottom: 140px;
+      bottom: 70px;
       left: 15px;
       display: flex;
       align-items: center;
@@ -71,7 +69,7 @@
 </head>
 <body>
   <div class="reel-container" id="reelPager">
-    <video id="reelVideo" autoplay muted playsinline></video>
+    <video id="reelVideo" autoplay muted playsinline loop></video>
     <div class="user-info">
       <img src="https://firebasestorage.googleapis.com/v0/b/tv-app-e4ef4.appspot.com/o/IMG_20250616_014131_524.jpg?alt=media&token=a629a4db-e86e-4e81-b23b-b1906302aba5" alt="profile">
       <span id="reelUser" style="color:white;font-weight:bold;"></span>
@@ -97,11 +95,11 @@
     const title = document.getElementById('reelTitle');
     const user = document.getElementById('reelUser');
     const replayBtn = document.getElementById('replayBtn');
-    let isMuted = true;
 
     let reelsData = [];
     let currentIndex = 0;
     let seenReels = JSON.parse(localStorage.getItem("seen_reels") || "[]");
+    let soundEnabled = false;
 
     function loadReels() {
       db.ref('reels').once('value', snapshot => {
@@ -113,7 +111,6 @@
           }
         });
         if (reelsData.length > 0) {
-          currentIndex = 0;
           showReel(currentIndex);
         } else {
           title.innerText = "🎉 Barcha reels ko‘rildi!";
@@ -128,23 +125,29 @@
       if (!reel) return;
       video.src = `https://archive.org/download/${reel.stream}.mp4`;
       video.load();
-      video.muted = isMuted;
-      video.loop = true;
+      video.muted = !soundEnabled;
       title.innerText = reel.title;
       user.innerText = reel.username || "AniGouz";
       video.style.display = "block";
       replayBtn.style.display = "none";
+      addToSeen(reel.stream);
     }
 
     function nextReel() {
       if (currentIndex + 1 < reelsData.length) {
         currentIndex++;
         showReel(currentIndex);
-        addToSeen(reelsData[currentIndex].stream);
       } else {
         title.innerText = "🎉 Barcha reels ko‘rildi!";
         replayBtn.style.display = "block";
         video.style.display = "none";
+      }
+    }
+
+    function prevReel() {
+      if (currentIndex > 0) {
+        currentIndex--;
+        showReel(currentIndex);
       }
     }
 
@@ -160,30 +163,36 @@
       }
     }
 
+    // Swipe
     let startY = 0;
     let endY = 0;
-    document.getElementById("reelPager").addEventListener("touchstart", e => {
+    const pager = document.getElementById("reelPager");
+
+    pager.addEventListener("touchstart", e => {
       startY = e.changedTouches[0].screenY;
     });
-    document.getElementById("reelPager").addEventListener("touchend", e => {
+
+    pager.addEventListener("touchend", e => {
       endY = e.changedTouches[0].screenY;
-      if (startY - endY > 50) nextReel();
+      const delta = startY - endY;
+      if (delta > 50) nextReel();
+      else if (delta < -50) prevReel();
     });
 
-    // Toast chiqishi
+    // Ovoz yoqish va Toast
     window.addEventListener("load", () => {
       setTimeout(() => {
-        alert("🎧 Ovozni eshitish uchun videoga bosing!");
-      }, 2000);
+        alert("🎧 Ovozni eshitish uchun videoga 1 marta bosing!");
+      }, 1000);
     });
 
     video.addEventListener("click", () => {
-      isMuted = false;
       video.muted = false;
+      soundEnabled = true;
       video.play();
     });
 
     loadReels();
   </script>
 </body>
-  </html>
+</html>
